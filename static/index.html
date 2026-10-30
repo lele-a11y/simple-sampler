@@ -1,44 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simpel Sampler</title>
-  <link rel="icon" href="data:,">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="/ui.js"></script>
-</head>
-<body>
 
-  <!-- Browsers only allow audio after a click, so everyone joins explicitly -->
-  <div id="joinOverlay" class="join-overlay">
-    <button id="joinBtn" class="btn join-btn">Join</button>
+<html lang="de"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>NEON SAMPLER</title> <link rel="icon" href="data:,"> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"> <link rel="stylesheet" href="/style.css"> <script type="module" src="/ui.js"></script> </head> <body>
+
+<div id="joinOverlay" class="join-overlay"> <div class="join-card panel"> <h1>NEON SAMPLER</h1> <p>ENTER THE JAM</p> <input id="playerName" maxlength="20" placeholder="Dein Name" value="DJ"> <button id="joinBtn" class="btn join-btn">JOIN ROOM</button> </div> </div>
+
+<header class="app-header"> <div> <h1 class="title">NEON SAMPLER</h1> <span class="subtitle">MULTIPLAYER ELECTRONIC MUSIC STUDIO</span> </div> <button id="shareBtn" class="btn btn-sm">COPY ROOM LINK</button> </header>
+
+<section class="players-panel panel"> <div class="players-heading"> <span class="online-dot"></span> <span>PLAYERS IN ROOM</span> <span id="playerCount">0</span> </div> <div id="playersList" class="players-list"> <span class="empty-players">Waiting for DJs...</span> </div> </section>
+
+<main id="tracks"></main>
+
+<div id="addBar" class="add-bar"></div>
+
+<footer class="app-footer"> <div class="controls"> <button id="playBtn"> <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"> <polygon points="5,3 21,12 5,21"></polygon> </svg> </button>
+
+  <button id="clearBtn" class="btn">CLEAR</button>
+
+  <div class="bpm-control panel">
+    <label for="bpm">BPM</label>
+    <input id="bpm" type="range" min="60" max="200" value="120">
+    <span id="bpmVal">120</span>
   </div>
+</div>
 
-  <header class="app-header">
-    <h1 class="title">Simpel Sampler</h1>
-    <button id="shareBtn" class="btn btn-sm">Copy room link</button>
-  </header>
+<div class="footer-text">MADE FOR THE UNDERGROUND</div>
 
-  <main id="tracks">
-  </main>
-  <div id="addBar" class="add-bar"></div>
 
-  <footer class="app-footer">
-    <div class="controls">
-      <button id="playBtn">
-        <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'><polygon points='5,3 21,12 5,21'></polygon></svg>
-      </button>
-      <button id='clearBtn' class='btn'>Clear</button>
-      <div class="bpm-control panel">
-        <label for="bpm">BPM</label>
-        <input id="bpm" type="range" min="60" max="200" value="120">
-        <span id="bpmVal">120</span>
-      </div>
-    </div>
-  </footer>
-</body>
-</html>
+</footer>
+
+</body> </html>
