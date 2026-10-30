@@ -262,3 +262,17 @@ body {
   pointer-events: none;
 }
 input[type=range] { accent-color: var(--knob-indicator); }
+
+.step-grid {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.step {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+}
+
