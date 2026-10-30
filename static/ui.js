@@ -70,94 +70,123 @@ function updateStepButton(btn, track, step) {
 
 // ---------- Painting / Drawing ----------
 
-// Current painting operation
 let painting = null;
 
-// Apply a value to a step
 function paintStep(btn, track, value) {
   if (!btn || !canEdit(track)) return;
 
-  // Only paint steps belonging to the selected track
   if (btn.dataset.track !== String(track.id)) return;
 
   const step = Number(btn.dataset.step);
 
   if (!Number.isInteger(step) || step < 0 || step >= NUM_STEPS) return;
 
-  // Nothing to change
   if (Number(track.steps[step]) === value) return;
 
-  // Change step
   track.steps[step] = value;
 
-  // Update UI
   updateStepButton(btn, track, step);
 
-  // Multiplayer synchronization
   shareTrack(track, 'steps');
-
-  // Save locally
   saveState();
 }
 
-// Start painting
-function startPainting(btn, track) {
+function startPainting(btn, track, e) {
   if (!canEdit(track)) return;
 
   const step = Number(btn.dataset.step);
   const currentValue = Number(track.steps[step]);
 
-  // Starting on an inactive step activates.
-  // Starting on an active or half-active step erases.
-  const value = currentValue === 0 ? 1 : 0;
-
   painting = {
     track,
-    value
+    value: currentValue === 0 ? 1 : 0,
+    moved: false,
+    startX: e.clientX,
+    startY: e.clientY,
+    startStep: step,
+    startBtn: btn,
+    pointerId: e.pointerId
   };
-
-  paintStep(btn, track, value);
 }
 
-// Stop painting
-function stopPainting() {
+function stopPainting(e) {
+  if (!painting) return;
+
+  const operation = painting;
   painting = null;
+
+  // Normal click: cycle through all three states.
+  if (!operation.moved && canEdit(operation.track)) {
+    const { track, startStep, startBtn } = operation;
+    const v = Number(track.steps[startStep]);
+
+    track.steps[startStep] =
+      v === 0 ? 1 :
+      v === 1 ? 0.25 : 0;
+
+    updateStepButton(startBtn, track, startStep);
+
+    shareTrack(track, 'steps');
+    saveState();
+  }
 }
 
-// Mouse, touch and pen support
+// Start painting
 document.addEventListener('pointerdown', e => {
   const btn = e.target.closest('.step');
 
   if (!btn) return;
 
-  const trackId = btn.dataset.track;
-  const track = tracks.find(t => String(t.id) === trackId);
+  const track = tracks.find(t => String(t.id) === btn.dataset.track);
 
   if (!track || !canEdit(track)) return;
 
   e.preventDefault();
 
-  startPainting(btn, track);
+  startPainting(btn, track, e);
 });
 
-// Detect which step is currently underneath the pointer.
-// elementFromPoint also works with touch pointer capture.
+// Paint while moving
 document.addEventListener('pointermove', e => {
   if (!painting) return;
 
-  const btn = document.elementFromPoint(e.clientX, e.clientY)?.closest('.step');
+  if (e.pointerId !== painting.pointerId) return;
+
+  const distance = Math.hypot(
+    e.clientX - painting.startX,
+    e.clientY - painting.startY
+  );
+
+  if (distance > 5) {
+    painting.moved = true;
+  }
+
+  if (!painting.moved) return;
+
+  const btn = document.elementFromPoint(
+    e.clientX,
+    e.clientY
+  )?.closest('.step');
 
   if (!btn) return;
+
+  if (btn.dataset.track !== String(painting.track.id)) return;
 
   paintStep(btn, painting.track, painting.value);
 });
 
-// Release mouse or finger
+// Finish painting
 document.addEventListener('pointerup', stopPainting);
-document.addEventListener('pointercancel', stopPainting);
-window.addEventListener('blur', stopPainting);
 
-// Keyboard activation
+document.addEventListener('pointercancel', () => {
+  painting = null;
+});
+
+window.addEventListener('blur', () => {
+  painting = null;
+});
+
+// Keyboard accessibility: cycle through all three states.
 document.addEventListener('click', e => {
   const btn = e.target.closest('.step');
 
@@ -170,19 +199,20 @@ document.addEventListener('click', e => {
   const step = Number(btn.dataset.step);
   const v = Number(track.steps[step]);
 
-  track.steps[step] = v === 0 ? 1 : (v === 1 ? 0.25 : 0);
+  track.steps[step] =
+    v === 0 ? 1 :
+    v === 1 ? 0.25 : 0;
 
   updateStepButton(btn, track, step);
+
   shareTrack(track, 'steps');
   saveState();
 });
 
 // ---------- Tracks ----------
 
-// track id -> { track, instrument, root, refresh }
 const trackViews = new Map();
 
-// Changes a field of a track you may edit, then shares, redraws and saves it.
 function editTrack(track, field, change) {
   if (!canEdit(track)) return;
 
@@ -192,7 +222,6 @@ function editTrack(track, field, change) {
   saveState();
 }
 
-// Brings the DOM in line with the track list.
 function syncTracks() {
   const container = document.getElementById('tracks');
 
@@ -213,7 +242,10 @@ function syncTracks() {
     }
 
     const { root } = trackViews.get(track.id);
-    const expected = prev ? prev.nextElementSibling : container.firstElementChild;
+
+    const expected = prev
+      ? prev.nextElementSibling
+      : container.firstElementChild;
 
     if (root !== expected) {
       container.insertBefore(root, expected);
@@ -277,9 +309,6 @@ function renderTrack(track) {
 
     updateStepButton(btn, track, s);
 
-    // Normal click is handled globally for keyboard users.
-    // Pointer interaction is handled by the painting system.
-
     stepsContainer.appendChild(btn);
     stepButtons.push(btn);
   }
@@ -322,11 +351,11 @@ function renderTrack(track) {
   // Mute
   const muteBtn = root.querySelector('.mute-btn');
 
-  muteBtn.addEventListener('click', () =>
+  muteBtn.addEventListener('click', () => {
     editTrack(track, 'muted', () => {
       track.muted = !track.muted;
-    })
-  );
+    });
+  });
 
   // Remove
   const removeBtn = root.querySelector('.remove-btn');
@@ -367,9 +396,9 @@ function renderTrack(track) {
   });
 
   function refresh() {
-    stepButtons.forEach((btn, s) =>
-      updateStepButton(btn, track, s)
-    );
+    stepButtons.forEach((btn, s) => {
+      updateStepButton(btn, track, s);
+    });
 
     knobUpdates.forEach(update => update());
 
@@ -463,9 +492,9 @@ const setBpmThrottled = throttle(setBpm, 100);
 
 // ---------- Events ----------
 
-events.addEventListener('step', e =>
-  updateStepVisual(e.detail)
-);
+events.addEventListener('step', e => {
+  updateStepVisual(e.detail);
+});
 
 events.addEventListener('transport', () => {
   const playing = state.transport.playing;
@@ -476,9 +505,9 @@ events.addEventListener('transport', () => {
   playBtn.classList.toggle('playing', playing);
 
   if (!playing) {
-    document.querySelectorAll('.step.current').forEach(el =>
-      el.classList.remove('current')
-    );
+    document.querySelectorAll('.step.current').forEach(el => {
+      el.classList.remove('current');
+    });
   }
 
   saveState();
@@ -507,11 +536,11 @@ playBtn.addEventListener('click', () => {
 // ---------- Clear ----------
 
 clearBtn.addEventListener('click', () => {
-  tracks.forEach(track =>
+  tracks.forEach(track => {
     editTrack(track, 'steps', () => {
       track.steps = fitSteps([]);
-    })
-  );
+    });
+  });
 });
 
 // ---------- Share ----------
@@ -559,7 +588,6 @@ document.addEventListener('keydown', e => {
   if (!joinOverlay.hidden) return;
 
   if (e.code === 'Space' || e.code === 'Enter') {
-    // Don't interfere with inputs or buttons
     if (
       e.target.matches('input, textarea, select, button') ||
       e.target.isContentEditable
